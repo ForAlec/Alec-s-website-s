@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 1: Travel — a website just for you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#7fb8de;
+    --sky-mid:#aad1e9;
+    --sky-low:#dfedf5;
+    --cream:#faf6ec;
+    --paper:#f3ede0;
+    --envelope:#f6e6bd;
+    --envelope-shadow:#e3c988;
+    --ink:#1f2f3d;
+    --ink-soft:#4a5c6b;
+    --yellow:#f4d64a;
+    --blue-highlight:#a9d7f5;
+    --grass:#8bb35a;
+    --grass-dark:#6f9a45;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    font-family:'Nunito Sans', sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 45%, var(--sky-low) 100%);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- Clouds (persistent background) ---------- */
+  .cloud-layer{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+  .cloud{position:absolute; background:#fff; border-radius:100px; opacity:0.85; filter:blur(0.5px);}
+  .cloud::before, .cloud::after{content:""; position:absolute; background:#fff; border-radius:100px;}
+  .c1{width:180px; height:60px; top:8%; left:-220px; animation:drift 46s linear infinite;}
+  .c1::before{width:90px; height:90px; top:-45px; left:20px;}
+  .c1::after{width:70px; height:70px; top:-30px; left:100px;}
+  .c2{width:120px; height:44px; top:22%; left:-160px; animation:drift 34s linear infinite; animation-delay:-10s;}
+  .c2::before{width:60px; height:60px; top:-28px; left:15px;}
+  .c2::after{width:46px; height:46px; top:-20px; left:65px;}
+  .c3{width:220px; height:70px; top:4%; left:-260px; animation:drift 58s linear infinite; animation-delay:-25s;}
+  .c3::before{width:110px; height:110px; top:-55px; left:30px;}
+  .c3::after{width:80px; height:80px; top:-35px; left:130px;}
+  .c4{width:140px; height:50px; top:15%; left:-180px; animation:drift 40s linear infinite; animation-delay:-5s;}
+  .c4::before{width:70px; height:70px; top:-34px; left:18px;}
+  .c4::after{width:54px; height:54px; top:-24px; left:80px;}
+  @keyframes drift{ from{transform:translateX(0);} to{transform:translateX(140vw);} }
+
+  /* ---------- Page nav dots ---------- */
+  .page-nav{
+    position:fixed; top:20px; left:50%; transform:translateX(-50%);
+    display:flex; gap:10px; z-index:50;
+    background:rgba(255,255,255,0.35);
+    padding:8px 14px; border-radius:999px;
+    backdrop-filter:blur(6px);
+  }
+  .page-nav button{
+    width:9px; height:9px; border-radius:50%;
+    border:none; background:rgba(31,47,61,0.28);
+    cursor:pointer; padding:0;
+    transition:background 0.25s ease, transform 0.25s ease;
+  }
+  .page-nav button.active{background:var(--ink); transform:scale(1.3);}
+  .page-nav button:focus-visible{outline:2px solid var(--ink); outline-offset:3px;}
+
+  main{position:relative; z-index:1;}
+
+  .page{
+    display:none;
+    min-height:100vh;
+    width:100%;
+    padding:100px 32px 60px;
+    opacity:0;
+    transform:translateY(18px);
+  }
+  .page.active{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    animation:pageIn 0.6s ease forwards;
+  }
+  @keyframes pageIn{ from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- shared bits ---------- */
+  .frame-art{
+    width:100%; height:100%;
+    background:linear-gradient(180deg,#bfe0f5 0%, #d9edf7 55%, #cfe8bd 55%, #9fcf7e 100%);
+    position:relative; overflow:hidden;
+  }
+  .frame-art svg{position:absolute; inset:0; width:100%; height:100%;}
+  .browser-chip{
+    background:var(--cream);
+    box-shadow:0 18px 40px rgba(30,50,70,0.22);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .browser-chip .bar{
+    background:#e4e4e4;
+    font-size:0.7rem;
+    color:#555;
+    padding:5px 10px;
+    font-family:'Nunito Sans', sans-serif;
+  }
+
+  .cta{
+    appearance:none;
+    border:2px solid var(--ink);
+    background:transparent;
+    color:var(--ink);
+    font-family:'Nunito Sans', sans-serif;
+    font-weight:700;
+    font-size:1rem;
+    padding:14px 26px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background 0.25s ease, color 0.25s ease, transform 0.15s ease;
+  }
+  .cta:hover{background:var(--ink); color:var(--cream);}
+  .cta:active{transform:scale(0.97);}
+  .cta:focus-visible{outline:3px solid #2a6fa8; outline-offset:3px;}
+
+  /* ================= PAGE 1 : COVER ================= */
+  #page1.active{
+    display:flex; flex-direction:row; align-items:center; justify-content:space-between;
+    max-width:1300px; margin:0 auto; gap:24px;
+  }
+  .cover-photos{display:flex; align-items:flex-end; gap:14px;}
+  .cover-photos.right{align-items:flex-start;}
+  .cover-photo-lg.browser-chip{width:230px; height:280px;}
+  .cover-photo-stack{display:flex; flex-direction:column; gap:12px; margin-top:-40px;}
+  .cover-photo-stack .browser-chip{width:118px; height:100px;}
+  .cover-photo-md.browser-chip{width:150px; height:160px;}
+
+  .cover-center{text-align:center; max-width:560px;}
+  .cover-heading{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:clamp(3rem, 6vw, 4.6rem);
+    line-height:1;
+    margin:0 0 4px;
+  }
+  .cover-heading .travel{
+    display:block;
+    font-style:italic;
+    font-weight:600;
+    background:linear-gradient(180deg, transparent 58%, var(--yellow) 58%);
+    padding:0 10px;
+    margin-top:6px;
+  }
+  .cover-sub{
+    font-size:1.25rem;
+    margin:26px 0 8px;
+    color:var(--ink);
+  }
+  .cover-sub .selected{
+    position:relative;
+    background:var(--blue-highlight);
+    padding:2px 6px;
+    border-radius:2px;
+  }
+  .cover-sub .selected::after{
+    content:"";
+    position:absolute; right:-2px; top:-4px; bottom:-4px;
+    width:2px; background:#2a7fc9;
+  }
+  .cover-sub .selected::before{
+    content:"";
+    position:absolute; right:-6px; bottom:-9px;
+    width:8px; height:8px; border-radius:50%;
+    background:#2a7fc9;
+  }
+  .dash-line{
+    border:none;
+    border-top:2px dashed #c0392b;
+    width:220px;
+    margin:22px auto 30px;
+  }
+
+  /* ================= PAGE 2 : PLANE TIME / MESSAGE ================= */
+  #page2.active{
+    max-width:1120px; margin:0 auto;
+    display:grid; grid-template-columns:1.05fr 1fr; gap:56px; align-items:center;
+  }
+  .polaroid-group{display:flex; gap:18px; align-items:center; justify-content:center;}
+  .polaroid{
+    background:var(--cream); padding:14px 14px 34px; border-radius:3px;
+    box-shadow:0 18px 40px rgba(30,50,70,0.22); transform:rotate(-3deg);
+  }
+  .polaroid .frame{width:230px; height:280px; border-radius:2px; overflow:hidden;}
+  .thumb-stack{display:flex; flex-direction:column; gap:10px;}
+  .thumb{width:96px; height:78px; background:var(--cream); padding:6px 6px 10px; box-shadow:0 8px 18px rgba(30,50,70,0.18); border-radius:2px; transform:rotate(2deg);}
+  .thumb .frame{width:100%; height:100%; border-radius:1px;}
+
+  .hero-copy h1{
+    font-family:'Fraunces', serif; font-weight:500;
+    font-size:clamp(2.4rem, 4.2vw, 3.4rem); line-height:1.05; margin:0 0 22px; letter-spacing:-0.01em;
+  }
+  .hero-copy h1 em{
+    font-style:italic;
+    background:linear-gradient(180deg, transparent 62%, var(--yellow) 62%);
+    padding:0 6px;
+  }
+  .hero-copy p{font-size:1.1rem; line-height:1.6; color:var(--ink-soft); max-width:38ch; margin:0 0 26px;}
+
+  .note{
+    background:var(--paper); border-radius:14px; box-shadow:0 20px 40px rgba(30,50,70,0.16);
+    max-width:420px; overflow:hidden; margin-bottom:28px;
+  }
+  .note-head{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; color:#c98a2c; font-weight:700; font-size:0.95rem;}
+  .note-date{
+    background:linear-gradient(90deg, #e8ad3f, #f3c569); color:#fff; padding:4px 14px; border-radius:5px;
+    font-size:0.85rem; display:inline-block; margin:0 18px 10px; font-weight:700; width:fit-content;
+  }
+  .note-body{padding:0 18px 10px; font-size:1rem; line-height:1.5; color:var(--ink);}
+  .note-answer{
+    margin:8px 18px 18px;
+    background:#fff;
+    border-radius:8px;
+    min-height:78px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .note-answer textarea{
+    width:100%; height:100%; min-height:78px; border:none; background:transparent;
+    resize:vertical; font-family:'Nunito Sans', sans-serif; font-size:0.95rem; color:var(--ink);
+    padding:12px 14px; outline:none;
+  }
+  .note-footer{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:0 18px 18px;
+  }
+  .send-btn{
+    appearance:none; border:none; background:var(--ink); color:var(--cream);
+    font-family:'Nunito Sans', sans-serif; font-weight:700; font-size:0.9rem;
+    padding:9px 18px; border-radius:999px; cursor:pointer; transition:transform 0.15s ease, background 0.2s ease;
+  }
+  .send-btn:hover{background:#33475a;}
+  .send-btn:active{transform:scale(0.96);}
+  .send-status{font-size:0.82rem; color:var(--ink-soft); min-height:1.1em;}
+
+  /* ================= PAGE 3 : ENVELOPE (peek) ================= */
+  #page3.active{max-width:760px; margin:0 auto; text-align:center;}
+  .letter-title{
+    font-family:'Fraunces', serif; font-style:italic; font-size:clamp(2rem, 4vw, 2.8rem); margin:0 0 40px;
+  }
+  .letter-title span{background:var(--yellow); padding:0 10px; font-style:italic;}
+
+  .peek-wrap{
+    position:relative; width:100%; max-width:520px; aspect-ratio:16/10; margin:0 auto;
+    cursor:pointer;
+  }
+  .peek-letter{
+    position:absolute; inset:6% 8% auto 8%; height:78%;
+    background:#eef4f8;
+    background-image:
+      linear-gradient(90deg, transparent 0, transparent calc(50% - 1px), #e2a3a3 calc(50% - 1px), #e2a3a3 calc(50% + 1px), transparent calc(50% + 1px)),
+      linear-gradient(#c9dbe8 1px, transparent 1px);
+    background-size:100% 100%, 100% 24px;
+    border-radius:4px 4px 0 0;
+    box-shadow:0 -6px 18px rgba(0,0,0,0.08);
+    z-index:1;
+    overflow:hidden;
+  }
+  .peek-letter .window-mini{
+    position:absolute; right:14%; bottom:10%; width:78px; height:90px;
+  }
+  .peek-envelope-body{
+    position:absolute; left:0; right:0; bottom:0; height:66%;
+    background:var(--envelope);
+    clip-path:polygon(0 100%, 0 18%, 50% 62%, 100% 18%, 100% 100%);
+    z-index:2;
+    filter:drop-shadow(0 18px 30px rgba(30,50,70,0.28));
+  }
+  .peek-hint{margin:22px 0 0; color:var(--ink-soft); font-size:0.95rem;}
+
+  /* ================= PAGE 4 : OPENED LETTER ================= */
+  #page4.active{max-width:720px; margin:0 auto;}
+  .full-letter{
+    background:#eef4f8;
+    background-image:linear-gradient(#d8e6f0 1px, transparent 1px);
+    background-size:100% 32px;
+    border-radius:8px;
+    box-shadow:0 20px 50px rgba(30,50,70,0.26);
+    padding:38px 44px 44px;
+    position:relative;
+    font-family:'Caveat', cursive;
+    font-size:1.55rem;
+    line-height:32px;
+    color:#33475a;
+  }
+  .full-letter::before{content:""; position:absolute; top:0; bottom:0; left:56px; width:1px; background:#e2a3a3;}
+  .full-letter p{margin:0;}
+  .signoff{margin-top:8px;}
+  .plane-doodle{position:absolute; top:22px; right:34px; width:64px; height:64px;}
+  .window-wrap{display:flex; justify-content:center; margin:26px 0 6px;}
+  .window{width:190px; height:220px; position:relative;}
+  .ticket{position:absolute; left:0; bottom:0; width:58px; height:78px;}
+  .footer-note{text-align:center; color:var(--ink-soft); font-size:0.95rem; margin-top:30px;}
+  .again-btn{display:block; margin:22px auto 0; background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-family:'Nunito Sans', sans-serif; font-size:0.95rem;}
+
+  .ground{position:relative; z-index:1; height:60px; background:linear-gradient(180deg, var(--grass) 0%, var(--grass-dark) 100%);}
+
+  @media (max-width:900px){
+    #page1{flex-direction:column; gap:36px; padding-top:120px;}
+    .cover-photos{order:2;}
+    .cover-center{order:1;}
+    #page2{grid-template-columns:1fr; text-align:center;}
+    .polaroid-group{order:2; margin-top:10px;}
+    .hero-copy{order:1;}
+    .hero-copy p, .note{margin-left:auto; margin-right:auto;}
+    .thumb-stack{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="cloud-layer" aria-hidden="true">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="cloud c4"></div>
+</div>
+
+<nav class="page-nav" aria-label="Page navigation">
+  <button data-page="1" class="active" aria-label="Page 1"></button>
+  <button data-page="2" aria-label="Page 2"></button>
+  <button data-page="3" aria-label="Page 3"></button>
+  <button data-page="4" aria-label="Page 4"></button>
+</nav>
+
+<main>
+
+  <!-- PAGE 1 : COVER -->
+  <section class="page active" id="page1">
+    <div class="cover-photos left">
+      <div class="cover-photo-lg browser-chip">
+        <div class="bar">slay.png</div>
+        <div class="frame-art">
+          <svg viewBox="0 0 230 200" preserveAspectRatio="none"><circle cx="150" cy="55" r="26" fill="#fff"/><circle cx="175" cy="60" r="20" fill="#fff"/><circle cx="125" cy="62" r="18" fill="#fff"/></svg>
+        </div>
+      </div>
+      <div class="cover-photo-stack">
+        <div class="cover-photo-md browser-chip"><div class="bar">Details.jpg</div><div class="frame-art"><svg viewBox="0 0 150 140"><circle cx="90" cy="40" r="16" fill="#fff"/></svg></div></div>
+        <div class="cover-photo-md browser-chip" style="width:100px;height:100px;"><div class="bar">Details.jpg</div><div class="frame-art"><svg viewBox="0 0 100 80"><circle cx="60" cy="26" r="10" fill="#fff"/></svg></div></div>
+      </div>
+    </div>
+
+    <div class="cover-center">
+      <h1 class="cover-heading">Day 1 <span class="travel">Travel</span></h1>
+      <p class="cover-sub">A website <span class="selected">just for you</span></p>
+      <hr class="dash-line">
+      <button class="cta" data-goto="2">Click here</button>
+    </div>
+
+    <div class="cover-photos right">
+      <div class="cover-photo-md browser-chip" style="width:170px;height:150px;">
+        <div class="bar">slay.png</div>
+        <div class="frame-art"><svg viewBox="0 0 170 130"><circle cx="100" cy="34" r="15" fill="#fff"/></svg></div>
+      </div>
+      <div class="cover-photo-lg browser-chip" style="margin-top:40px;">
+        <div class="bar">slay.png</div>
+        <div class="frame-art"><svg viewBox="0 0 230 200"><circle cx="120" cy="55" r="24" fill="#fff"/></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 2 : PLANE TIME + MESSAGE -->
+  <section class="page" id="page2">
+    <div class="polaroid-group">
+      <div class="polaroid">
+        <div class="frame frame-art">
+          <svg viewBox="0 0 230 200" preserveAspectRatio="none"><circle cx="150" cy="55" r="26" fill="#fff"/><circle cx="175" cy="60" r="20" fill="#fff"/><circle cx="125" cy="62" r="18" fill="#fff"/></svg>
+        </div>
+      </div>
+      <div class="thumb-stack" aria-hidden="true">
+        <div class="thumb"><div class="frame frame-art"></div></div>
+        <div class="thumb"><div class="frame frame-art"></div></div>
+        <div class="thumb"><div class="frame frame-art"></div></div>
+      </div>
+    </div>
+
+    <div class="hero-copy">
+      <h1>It's Plane <em>Time</em></h1>
+      <p>Hi Alec! I've been working on this website for you for the last few weeks so you can see my adventures while I'm gone :) I hope you like it.</p>
+
+      <div class="note">
+        <div class="note-head"><span>Notes</span><span>✎</span></div>
+        <div class="note-date">Sep. 27</div>
+        <div class="note-body">Question: What did you listen to today? Did I forget anything at home?</div>
+        <div class="note-answer">
+          <textarea id="replyText" placeholder="Write your answer here..." aria-label="Your reply"></textarea>
+        </div>
+        <div class="note-footer">
+          <span class="send-status" id="sendStatus"></span>
+          <button class="send-btn" id="sendReplyBtn">Send to me</button>
+        </div>
+      </div>
+
+      <button class="cta" data-goto="3">Click Here for your letter of the day</button>
+    </div>
+  </section>
+
+  <!-- PAGE 3 : ENVELOPE PEEK -->
+  <section class="page" id="page3">
+    <h2 class="letter-title">A letter <span>for you</span></h2>
+    <div class="peek-wrap" id="peekEnvelope" role="button" tabindex="0" aria-label="Open the envelope to read your letter">
+      <div class="peek-letter">
+        <div class="window-mini">
+          <svg viewBox="0 0 78 90" fill="none">
+            <rect x="3" y="3" width="72" height="84" rx="30" fill="#c9cfd6" stroke="#9aa3ab" stroke-width="3"/>
+            <rect x="10" y="10" width="58" height="70" rx="24" fill="#fff" stroke="#c9cfd6" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+      <div class="peek-envelope-body"></div>
+    </div>
+    <p class="peek-hint">Tap the envelope to open it</p>
+  </section>
+
+  <!-- PAGE 4 : FULL LETTER -->
+  <section class="page" id="page4">
+    <div class="full-letter">
+      <svg class="plane-doodle" viewBox="0 0 64 64" fill="none">
+        <path d="M4 34 L54 8 L40 58 L30 40 L4 34Z" fill="#eef1f4" stroke="#33475a" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M30 40 L54 8 L20 46" fill="#dbe2e8" stroke="#33475a" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+
+      <p>Hi Alec,</p>
+      <p>I made my own handwriting! Isn't that cool?</p>
+      <p>Sorry for keeping so many secrets from you about this website and surprises :P</p>
+      <p>Hehe, the little face looks funny. Anyway,</p>
+      <p>I'm going to be sending you a new link to a</p>
+      <p>new website every day! I hope you enjoy.</p>
+      <p class="signoff">&mdash; Liv</p>
+
+      <div class="window-wrap">
+        <svg class="window" viewBox="0 0 190 220" fill="none">
+          <rect x="6" y="6" width="178" height="208" rx="70" fill="#c9cfd6" stroke="#9aa3ab" stroke-width="4"/>
+          <rect x="20" y="20" width="150" height="180" rx="60" fill="#fff" stroke="#c9cfd6" stroke-width="3"/>
+          <g stroke="#33475a" stroke-width="2.5" stroke-linecap="round" fill="none">
+            <circle cx="95" cy="100" r="34" fill="none"/>
+            <path d="M78 92 q17 -14 34 0" />
+            <circle cx="86" cy="98" r="2.4" fill="#33475a" stroke="none"/>
+            <circle cx="104" cy="98" r="2.4" fill="#33475a" stroke="none"/>
+            <path d="M88 112 q7 6 14 0" />
+            <path d="M70 78 q10 -18 25 -16" />
+            <path d="M110 66 l6 -10 M118 70 l10 -6" />
+          </g>
+        </svg>
+      </div>
+
+      <svg class="ticket" viewBox="0 0 58 78" fill="none">
+        <rect x="1" y="1" width="56" height="76" rx="4" fill="#c96b6b" stroke="#7a3f3f" stroke-width="2"/>
+        <rect x="8" y="10" width="42" height="30" rx="2" fill="#f2e6d8"/>
+        <path d="M22 30 L36 18 L36 26 L44 22 L44 30 L36 34" stroke="#7a3f3f" stroke-width="2" fill="none" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p class="footer-note">A new link, a new little piece of the trip — every day until I'm home.</p>
+    <button class="again-btn" id="restartBtn">&larr; back to the start</button>
+  </section>
+
+</main>
+<div class="ground" aria-hidden="true"></div>
+
+<script>
+  const pages = Array.from(document.querySelectorAll('.page'));
+  const navButtons = Array.from(document.querySelectorAll('.page-nav button'));
+
+  function goToPage(n){
+    pages.forEach(p => p.classList.remove('active'));
+    navButtons.forEach(b => b.classList.remove('active'));
+    const target = document.getElementById('page' + n);
+    if (target){ target.classList.add('active'); }
+    const navBtn = navButtons.find(b => b.dataset.page === String(n));
+    if (navBtn){ navBtn.classList.add('active'); }
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  document.querySelectorAll('[data-goto]').forEach(el => {
+    el.addEventListener('click', () => goToPage(el.dataset.goto));
+  });
+  navButtons.forEach(b => b.addEventListener('click', () => goToPage(b.dataset.page)));
+
+  // Envelope on page 3 -> reveal letter, then move to page 4
+  const peekEnvelope = document.getElementById('peekEnvelope');
+  function openAndAdvance(){
+    peekEnvelope.style.transition = 'transform 0.5s ease';
+    peekEnvelope.style.transform = 'translateY(-14px) scale(1.03)';
+    setTimeout(() => { goToPage(4); }, 480);
+  }
+  peekEnvelope.addEventListener('click', openAndAdvance);
+  peekEnvelope.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openAndAdvance(); }
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', () => goToPage(1));
+
+  // Send reply via email (mailto)
+  const RECIPIENT_EMAIL = "liv@example.com"; // TODO: replace with your real email address
+  document.getElementById('sendReplyBtn').addEventListener('click', () => {
+    const text = document.getElementById('replyText').value.trim();
+    const status = document.getElementById('sendStatus');
+    if (!text){
+      status.textContent = "Write something first :)";
+      return;
+    }
+    const subject = encodeURIComponent("A note back for you, Liv");
+    const body = encodeURIComponent(text);
+    window.location.href = `mailto:${RECIPIENT_EMAIL}?subject=${subject}&body=${body}`;
+    status.textContent = "Opening your email app...";
+  });
+</script>
+
+</body>
+</html>
